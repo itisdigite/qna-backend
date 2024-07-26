@@ -15,7 +15,7 @@ To get started, make sure you have Python 3.x installed on your machine. Then, f
 To run the backend server, execute the following command:
 
 ```bash
-python manage.py 
+python login_page.py 
 ```
 
 The server will start running on `http://localhost:8000`.
