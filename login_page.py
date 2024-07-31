@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string, render_template, redirect, url_for
+from flask import Flask, request, render_template_string, render_template, redirect, url_for # type: ignore
 import sqlite3
 import re
 import smtplib
@@ -6,6 +6,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import random
 import datetime
+
+
+
 
 def init_db():
     conn = sqlite3.connect('credentials.db')
@@ -53,25 +56,7 @@ def generate_and_send_otc(email):
         server.login(sender_email, password)
         server.sendmail(sender_email, receiver_email, message.as_string())
 
-app = Flask(__name__)
 
-# HTML template for the login form
-LOGIN_FORM = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Login Page</title>
-</head>
-<body>
-    <h2>Login Page</h2>
-    <form method="post">
-        Email: <input type="text" name="email"><br> <!-- Added email field -->
-        Password: <input type="password" name="password"><br>
-        <input type="submit" value="Login">
-    </form>
-</body>
-</html>
-"""
 
 # Create a user registration form
 REGISTER_FORM = """     
@@ -109,6 +94,10 @@ VERIFY_FORM = """
 </body>
 </html>
 """
+#app = Flask(__name__, template_folder='../qna-frontend/templates')
+app = Flask(__name__, 
+            static_folder='../qna-frontend/static', 
+            template_folder='../qna-frontend/templates')
 
 # Route for displaying the registration form
 @app.route("/register", methods=["GET"])
@@ -174,34 +163,35 @@ def verify_code():
     conn.close()
     return message
 
-# Route for displaying the login form
-@app.route("/", methods=["GET"])
-def login_form():
-    return LOGIN_FORM
+
 
 # Route for handling the login logic
-@app.route("/", methods=["POST"])
+@app.route("/", methods=['GET', 'POST'])
 def login():
-    email = request.form['email']
-    password = request.form['password']
-    
-    conn = sqlite3.connect('credentials.db')
-    c = conn.cursor()
-    c.execute("SELECT password, verified FROM users WHERE email = ?", (email,))
-    user = c.fetchone()
-    
-    conn.close()
-    
-    if user:
-        stored_password, verified = user
-        if verified and stored_password == password:
-            return "Login successful!"
-        elif not verified:
-            return "Email not verified."
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        conn = sqlite3.connect('credentials.db')
+        c = conn.cursor()
+        c.execute("SELECT password, verified FROM users WHERE email = ?", (email,))
+        user = c.fetchone()
+        
+        conn.close()
+        
+        if user:
+            stored_password, verified = user
+            if verified and stored_password == password:
+                return "Login successful!"
+            elif not verified:
+                return "Email not verified."
+            else:
+                return "Invalid email or password."
         else:
-            return "Invalid email or password."
+            message = 'Please enter correct email / password!'
+        return render_template('login.html', message=message)
     else:
-        return "Invalid email or password."
+        return render_template('login.html')
 
 if __name__ == "__main__":
     app.run(debug=True, port=8000)
