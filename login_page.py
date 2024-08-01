@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import random
 import datetime
-
+import bcrypt
 
 
 
@@ -39,7 +39,7 @@ def generate_and_send_otc(email):
     # Send the code via email
     sender_email = "noreply.codesend@gmail.com" # Your Sender email
     receiver_email = email
-    password = "**************"  # Your Sender email password, It will be 16 digit app password
+    password = "kemg ypms ajpu hloc"  # Your Sender email password, It will be 16 digit app password
     
     message = MIMEMultipart("alternative")
     message["Subject"] = "Your One-Time Code"
@@ -84,6 +84,9 @@ def register():
         if not is_valid_email(email):
             return "Invalid email format", 400
         
+        # Hash the password
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
         try:
             conn = sqlite3.connect('credentials.db')
             c = conn.cursor()
