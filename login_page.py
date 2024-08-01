@@ -37,9 +37,9 @@ def generate_and_send_otc(email):
     conn.close()
 
     # Send the code via email
-    sender_email = "**********************" # Your Sender email
+    sender_email = "****************" # Your Sender email
     receiver_email = email
-    password = "****************"  # Your Sender email password, It will be 16 digit app password
+    password = "**************"  # Your Sender email password, It will be 16 digit app password
     
     message = MIMEMultipart("alternative")
     message["Subject"] = "Your One-Time Code"
@@ -57,91 +57,68 @@ def generate_and_send_otc(email):
         server.sendmail(sender_email, receiver_email, message.as_string())
 
 
-
-# Create a user registration form
-REGISTER_FORM = """     
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Registration Page</title>
-</head>
-<body>
-    <h2>Registration Page</h2>
-    <form method="post">
-        Username: <input type="text" name="username"><br>
-        Email: <input type="text" name="email"><br>
-        Password: <input type="password" name="password"><br>
-        <input type="submit" value="Register">
-    </form>
-</body>
-</html>
-"""
-
-# Create a verification form
-VERIFY_FORM = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Verify Email</title>
-</head>
-<body>
-    <h2>Verify Your Email</h2>
-    <form method="post" action="/verify_code">
-        Email: <input type="text" name="email"><br>
-        One-Time Code: <input type="text" name="otc"><br>
-        <input type="submit" value="Verify">
-    </form>
-</body>
-</html>
-"""
-#app = Flask(__name__, template_folder='../qna-frontend/templates')
 app = Flask(__name__, 
             static_folder='../qna-frontend/static', 
             template_folder='../qna-frontend/templates')
 
 # Route for displaying the registration form
-@app.route("/register", methods=["GET"])
-def register_form():
-    return REGISTER_FORM
+# @app.route("/register", methods=["GET"])
+# def register_form():
+#     return REGISTER_FORM
 
 # Simple regex for basic email validation
 def is_valid_email(email):
     return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
 
-@app.route("/register", methods=["POST"])
+# Route for handling the registration logic
+@app.route("/register", methods=['GET', 'POST'])
 def register():
-    # Extract registration details from request
-    email = request.form['email']
-    password = request.form['password']
-    username = request.form['username']
-    
-    if not is_valid_email(email):
-        return "Invalid email format."
-    
-    # Store user with unverified status
-    try:
-        conn = sqlite3.connect('credentials.db')
-        c = conn.cursor()
-        c.execute("INSERT INTO users (username, email, password, verified) VALUES (?, ?, ?, 0)", (username, email, password))
-        conn.commit()
-    except sqlite3.IntegrityError:
-        return "Email already registered."
-    finally:
-        conn.close()
-    
-    # Generate and send OTC
-    generate_and_send_otc(email)
-    
-    return redirect(url_for('verify_form'))
+    if request.method == 'POST':
+        try:
+            username = request.form['username']
+            email = request.form['email']
+            password = request.form['password']
+        except KeyError:
+            return "Missing form data", 400
+        
+        if not is_valid_email(email):
+            return "Invalid email format", 400
+        
+        try:
+            conn = sqlite3.connect('credentials.db')
+            c = conn.cursor()
+            c.execute("INSERT INTO users (username, email, password, verified) VALUES (?, ?, ?, 0)", (username, email, password))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            return "Email already registered."
+        finally:
+            conn.close()
 
-@app.route("/verify", methods=["GET"])
-def verify_form():
-    return VERIFY_FORM
+        # Generate and send OTC
+        generate_and_send_otc(email)
 
-@app.route("/verify_code", methods=["POST"])
+        return redirect(url_for('verify', email=email))
+
+    return render_template('register.html')
+
+
+
+# @app.route("/verify", methods=["GET"])
+# def verify_form():
+#     return VERIFY_FORM
+
+@app.route("/verify", methods=['GET'])
+def verify():
+    email = request.args.get('email')
+    return render_template('verification.html', email=email)
+
+@app.route("/verify_code", methods=['POST'])
 def verify_code():
-    email = request.form['email']
-    otc = request.form['otc']
+    email = request.form.get('email')
+    otc = request.form.get('otc')
+    
+    if not email or not otc:
+        return "Email and one-time code are required."
     
     conn = sqlite3.connect('credentials.db')
     c = conn.cursor()
