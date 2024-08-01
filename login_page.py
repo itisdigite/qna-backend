@@ -37,7 +37,7 @@ def generate_and_send_otc(email):
     conn.close()
 
     # Send the code via email
-    sender_email = "****************" # Your Sender email
+    sender_email = "noreply.codesend@gmail.com" # Your Sender email
     receiver_email = email
     password = "**************"  # Your Sender email password, It will be 16 digit app password
     
@@ -61,10 +61,7 @@ app = Flask(__name__,
             static_folder='../qna-frontend/static', 
             template_folder='../qna-frontend/templates')
 
-# Route for displaying the registration form
-# @app.route("/register", methods=["GET"])
-# def register_form():
-#     return REGISTER_FORM
+
 
 # Simple regex for basic email validation
 def is_valid_email(email):
@@ -103,9 +100,6 @@ def register():
 
 
 
-# @app.route("/verify", methods=["GET"])
-# def verify_form():
-#     return VERIFY_FORM
 
 @app.route("/verify", methods=['GET'])
 def verify():
