@@ -90,7 +90,7 @@ def register():
         try:
             conn = sqlite3.connect('credentials.db')
             c = conn.cursor()
-            c.execute("INSERT INTO users (username, email, password, verified) VALUES (?, ?, ?, 0)", (username, email, password))
+            c.execute("INSERT INTO users (username, email, password, verified) VALUES (?, ?, ?, 0)", (username, email, hashed_password))
             conn.commit()
         except sqlite3.IntegrityError:
             return "Email already registered."
