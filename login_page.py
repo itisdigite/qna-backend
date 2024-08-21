@@ -90,7 +90,7 @@ def register():
         try:
             conn = sqlite3.connect('credentials.db')
             c = conn.cursor()
-            c.execute("INSERT INTO users (username, email, password, verified) VALUES (?, ?, ?, 0)", (username, email, password))
+            c.execute("INSERT INTO users (username, email, password, verified) VALUES (?, ?, ?, 0)", (username, email, hashed_password))
             conn.commit()
         except sqlite3.IntegrityError:
             return "Email already registered."
@@ -144,8 +144,6 @@ def verify_code():
     return message
 
 
-
-# Route for handling the login logic
 @app.route("/", methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -161,7 +159,7 @@ def login():
         
         if user:
             stored_password, verified = user
-            if verified and stored_password == password:
+            if verified and bcrypt.checkpw(password.encode('utf-8'), stored_password):
                 return "Login successful!"
             elif not verified:
                 return "Email not verified."
@@ -173,5 +171,6 @@ def login():
     else:
         return render_template('login.html')
 
+
 if __name__ == "__main__":
-    app.run(debug=True, port=8000)
+    app.run(host="0.0.0.0", port=8000)
