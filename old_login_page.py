@@ -1,5 +1,5 @@
-from flask import Flask, request, render_template, redirect, url_for # type: ignore
-import mysql.connector
+from flask import Flask, request, render_template_string, render_template, redirect, url_for # type: ignore
+import sqlite3
 import re
 import smtplib
 from email.mime.text import MIMEText
@@ -8,31 +8,38 @@ import random
 import datetime
 import bcrypt
 
-app = Flask(__name__, 
-            static_folder='../qna-frontend/static', 
-            template_folder='../qna-frontend/templates')
 
-def get_db_connection():
-    return mysql.connector.connect(
-        #host="db",  # Replace 'db' with your MySQL container name if running with Docker Compose
-        user="qnauser",
-        password="Pass@000",
-        database="qna"  # Replace with your database name
-    )
 
-def generate_and_send_otc(email):
-    code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
-    expiry = datetime.datetime.now() + datetime.timedelta(minutes=10)
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO otc_codes (email, code, expiry) VALUES (%s, %s, %s)", (email, code, expiry))
+def init_db():
+    conn = sqlite3.connect('credentials.db')
+    c = conn.cursor()
+    # Create users table - if not exists, with an added email column and verified column
+    c.execute('''CREATE TABLE IF NOT EXISTS users
+                 (username TEXT, password TEXT, email TEXT UNIQUE, verified INTEGER DEFAULT 0, otc TEXT)''')
+    # Create OTC table for storing one-time codes
+    c.execute('''CREATE TABLE IF NOT EXISTS otc_codes
+                 (email TEXT, code TEXT, expiry TIMESTAMP)''')
     conn.commit()
     conn.close()
 
+init_db()
+
+def generate_and_send_otc(email):
+    # Generate a random 6-digit code
+    code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    expiry = datetime.datetime.now() + datetime.timedelta(minutes=10)  # 10 minutes from now
+
+    # Store the code in the database
+    conn = sqlite3.connect('credentials.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO otc_codes (email, code, expiry) VALUES (?, ?, ?)", (email, code, expiry))
+    conn.commit()
+    conn.close()
+
+    # Send the code via email
     sender_email = "noreply.codesend@gmail.com" # Your Sender email
     receiver_email = email
-    password = "kemg ypms ajpu hloc"  # Your Sender email password
+    password = "kemg ypms ajpu hloc"  # Your Sender email password, It will be 16 digit app password
     
     message = MIMEMultipart("alternative")
     message["Subject"] = "Your One-Time Code"
@@ -43,14 +50,27 @@ def generate_and_send_otc(email):
     part = MIMEText(text, "plain")
     message.attach(part)
 
+    # Send email
     with smtplib.SMTP("smtp.gmail.com", 587) as server:
         server.starttls()
         server.login(sender_email, password)
         server.sendmail(sender_email, receiver_email, message.as_string())
 
+
+app = Flask(__name__, 
+            static_folder='../qna-frontend/static', 
+            template_folder='../qna-frontend/templates')
+
+# Route for displaying the registration form
+# @app.route("/register", methods=["GET"])
+# def register_form():
+#     return REGISTER_FORM
+
+# Simple regex for basic email validation
 def is_valid_email(email):
     return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
 
+# Route for handling the registration logic
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -64,23 +84,31 @@ def register():
         if not is_valid_email(email):
             return "Invalid email format", 400
         
+        # Hash the password
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (username, email, password, verified) VALUES (%s, %s, %s, 0)", (username, email, hashed_password))
+            conn = sqlite3.connect('credentials.db')
+            c = conn.cursor()
+            c.execute("INSERT INTO users (username, email, password, verified) VALUES (?, ?, ?, 0)", (username, email, hashed_password))
             conn.commit()
-        except mysql.connector.IntegrityError:
+        except sqlite3.IntegrityError:
             return "Email already registered."
         finally:
             conn.close()
 
+        # Generate and send OTC
         generate_and_send_otc(email)
 
         return redirect(url_for('verify', email=email))
 
     return render_template('register.html')
+
+
+
+# @app.route("/verify", methods=["GET"])
+# def verify_form():
+#     return VERIFY_FORM
 
 @app.route("/verify", methods=['GET'])
 def verify():
@@ -95,15 +123,16 @@ def verify_code():
     if not email or not otc:
         return "Email and one-time code are required."
     
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT code, expiry FROM otc_codes WHERE email = %s ORDER BY expiry DESC LIMIT 1", (email,))
-    result = cursor.fetchone()
+    conn = sqlite3.connect('credentials.db')
+    c = conn.cursor()
+    c.execute("SELECT code, expiry FROM otc_codes WHERE email = ? ORDER BY expiry DESC LIMIT 1", (email,))
+    result = c.fetchone()
     
     if result:
         stored_code, expiry = result
+        expiry = datetime.datetime.strptime(expiry, "%Y-%m-%d %H:%M:%S.%f")
         if stored_code == otc and datetime.datetime.now() < expiry:
-            cursor.execute("UPDATE users SET verified = 1 WHERE email = %s", (email,))
+            c.execute("UPDATE users SET verified = 1 WHERE email = ?", (email,))
             conn.commit()
             message = "Your email has been verified successfully."
         else:
@@ -114,16 +143,17 @@ def verify_code():
     conn.close()
     return message
 
+
 @app.route("/", methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
         
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT password, verified FROM users WHERE email = %s", (email,))
-        user = cursor.fetchone()
+        conn = sqlite3.connect('credentials.db')
+        c = conn.cursor()
+        c.execute("SELECT password, verified FROM users WHERE email = ?", (email,))
+        user = c.fetchone()
         
         conn.close()
         
@@ -140,6 +170,7 @@ def login():
         return render_template('login.html', message=message)
     else:
         return render_template('login.html')
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)
