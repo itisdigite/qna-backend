@@ -7,6 +7,10 @@ from email.mime.multipart import MIMEMultipart
 import random
 import datetime
 import bcrypt
+from db import init_db  # Import the init_db function
+
+# Initialize the database before starting the app
+init_db()
 
 app = Flask(__name__, 
             static_folder='../qna-frontend/static', 
@@ -129,6 +133,8 @@ def login():
         
         if user:
             stored_password, verified = user
+            stored_password = stored_password.encode('utf-8')  # Convert the stored password to bytes
+            
             if verified and bcrypt.checkpw(password.encode('utf-8'), stored_password):
                 return "Login successful!"
             elif not verified:
@@ -141,5 +147,6 @@ def login():
     else:
         return render_template('login.html')
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=8000, debug=True)

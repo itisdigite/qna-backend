@@ -2,6 +2,8 @@ import mysql.connector
 from mysql.connector import errorcode
 
 def init_db():
+    conn = None
+    c = None
     try:
         # Connect to MySQL server
         conn = mysql.connector.connect(
@@ -32,7 +34,10 @@ def init_db():
         else:
             print(err)
     finally:
-        c.close()
-        conn.close()
+        # Ensure c and conn are closed if they were initialized
+        if c:
+            c.close()
+        if conn:
+            conn.close()
 
 init_db()
