@@ -18,11 +18,12 @@ app = Flask(__name__,
 
 def get_db_connection():
     return mysql.connector.connect(
-        #host="db",  # Replace 'db' with your MySQL container name if running with Docker Compose
-        user="qnauser",
-        password="Pass@000",
-        database="qna"  # Replace with your database name
+        user='qnauser',
+        password='your_qnauser_password',  # Replace with your actual password
+        host='db',  # Use the service name 'db'
+        database='qna'
     )
+
 
 def generate_and_send_otc(email):
     code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
