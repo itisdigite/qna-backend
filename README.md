@@ -12,13 +12,15 @@ To get started, make sure you have Python 3.x installed on your machine. Then, f
 5. Install the required dependencies: `pip install -r requirements.txt`.
 
 ## Installation for DB side
+
 1. Install mysql servers - $sudo apt-get install mysql-server
 2. We need to create one user for our DB
-    $sudo mysql
-    $CREATE USER 'qnauser'@'localhost' IDENTIFIED BY 'Pass@000';
-    $GRANT ALL PRIVILEGES ON qna.* TO 'qnauser'@'localhost';
-    $FLUSH PRIVILEGES;
-
+    ```bash
+      sudo mysql
+      CREATE USER 'qnauser'@'localhost' IDENTIFIED BY 'Pass@000';
+      GRANT ALL PRIVILEGES ON qna.* TO 'qnauser'@'localhost';
+      FLUSH PRIVILEGES;
+    ```
 
 ## Now to run application go to qna-backend and run login_page.py
 To run the backend server, execute the following command:

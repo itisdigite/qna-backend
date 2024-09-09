@@ -19,8 +19,8 @@ app = Flask(__name__,
 def get_db_connection():
     return mysql.connector.connect(
         user='qnauser',
-        password='your_qnauser_password',  # Replace with your actual password
-        host='db',  # Use the service name 'db'
+        password='Pass@000',  # Replace with your actual password
+        #host='db',  # Use the service name 'db'
         database='qna'
     )
 
