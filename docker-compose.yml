@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0   # Use a specific version of MySQL (e.g., 8.0)
+    container_name: qna_mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: Pass@000  # Replace with a secure root password
+      MYSQL_DATABASE: qna                 # Name of the database
+      MYSQL_USER: qnauser                 # Your database username
+      MYSQL_PASSWORD: Pass@000            # Replace with your secure user password
+    ports:
+      - "3306:3306"                       # Map MySQL default port
+    volumes:
+      - ./mysql_data:/var/lib/mysql       # Volume for data persistence
+    networks:
+      - qna_network
+
+networks:
+  qna_network:
+    driver: bridge

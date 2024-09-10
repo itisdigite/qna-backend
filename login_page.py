@@ -18,11 +18,12 @@ app = Flask(__name__,
 
 def get_db_connection():
     return mysql.connector.connect(
+        host='127.0.0.1',  # Connect to the MySQL container on localhost
         user='qnauser',
-        password='Pass@000',  # Replace with your actual password
-        #host='db',  # Use the service name 'db'
+        password='Pass@000',
         database='qna'
     )
+
 
 
 def generate_and_send_otc(email):

@@ -163,3 +163,4 @@ cython_debug/
 
 # Ignore old login page file
 old_login_page.py
+mysql_data
