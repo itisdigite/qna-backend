@@ -39,6 +39,8 @@ cd qna-backend
     -Open a terminal and navigate to the project directory.
     -Run the following command to start the MySQL container:
 
+    -Note: If you have mysql service running on your local system then stop it using sudo systemctl stop mysql command.
+
 ```bash
 docker-compose up -d
 ```
